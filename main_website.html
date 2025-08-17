@@ -71,8 +71,8 @@
                             <datalist id="subject-list-options"></datalist>
                         </div>
                         <div>
-                            <label for="marks" class="block text-sm font-medium text-gray-600 mb-1">Marks Obtained (out of 100)</label>
-                            <input type="number" id="marks" placeholder="e.g., 85" min="0" max="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            <label for="marks" class="block text-sm font-medium text-gray-600 mb-1">Marks Obtained</label>
+                            <input type="number" id="marks" placeholder="e.g., 85 (out of 100)" min="0" max="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                         </div>
                         <button id="addSubjectBtn" class="w-full bg-indigo-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
                             Add Subject
@@ -163,6 +163,15 @@
         const datalist = document.getElementById('subject-list-options');
 
         /**
+         * Checks if a subject is a lab based on its name.
+         * @param {string} subjectName - The name of the subject.
+         * @returns {boolean} True if it's a lab subject, false otherwise.
+         */
+        function isLabSubject(subjectName) {
+            return subjectName.toLowerCase().includes('lab');
+        }
+
+        /**
          * Populates the datalist for autocomplete suggestions from all semesters.
          */
         function populateDatalist() {
@@ -177,8 +186,6 @@
         
         /**
          * Finds the semester for a given subject key (lowercase).
-         * @param {string} subjectKey - The lowercase name of the subject.
-         * @returns {string|null} The semester number as a string, or null if not found.
          */
         function findSemesterForSubject(subjectKey) {
             for (const semester in subjectCreditsDB) {
@@ -190,16 +197,16 @@
         }
 
         /**
-         * Converts marks into a grade and grade points.
+         * Converts a marks percentage into a grade and grade points.
          */
-        function getGradeInfo(marks) {
-            if (marks >= 90) return { grade: 'O', points: 10 };
-            if (marks >= 80) return { grade: 'A+', points: 9 };
-            if (marks >= 70) return { grade: 'A', points: 8 };
-            if (marks >= 60) return { grade: 'B+', points: 7 };
-            if (marks >= 50) return { grade: 'B', points: 6 };
-            if (marks >= 45) return { grade: 'C', points: 5 };
-            if (marks >= 40) return { grade: 'P', points: 4 };
+        function getGradeInfo(marksPercentage) {
+            if (marksPercentage >= 90) return { grade: 'O', points: 10 };
+            if (marksPercentage >= 80) return { grade: 'A+', points: 9 };
+            if (marksPercentage >= 70) return { grade: 'A', points: 8 };
+            if (marksPercentage >= 60) return { grade: 'B+', points: 7 };
+            if (marksPercentage >= 50) return { grade: 'B', points: 6 };
+            if (marksPercentage >= 45) return { grade: 'C', points: 5 };
+            if (marksPercentage >= 40) return { grade: 'P', points: 4 };
             return { grade: 'F', points: 0 };
         }
 
@@ -262,11 +269,11 @@
                         contentHTML += `
                             <tr class="border-b">
                                 <td class="px-2 py-2 font-medium">${sub.name} <span class="text-xs text-gray-500">(${sub.credits} cr)</span></td>
-                                <td class="px-2 py-2 text-center">${sub.marks}</td>
+                                <td class="px-2 py-2 text-center">${sub.marks}/${sub.totalMarks}</td>
                                 <td class="px-2 py-2 text-center font-semibold">${sub.gradeInfo.grade}</td>
                                 <td class="px-2 py-2 text-center">
                                     <button class="text-red-500 hover:text-red-700" onclick="removeSubject(${globalIndex})">
-                                        <svg xmlns="http://www.w.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                     </button>
                                 </td>
                             </tr>`;
@@ -281,7 +288,6 @@
                 accordionContainer.appendChild(details);
             }
 
-            // Update overall CGPA display
             const cgpa = totalCredits > 0 ? (totalCreditPoints / totalCredits).toFixed(2) : '0.00';
             const percentage = (parseFloat(cgpa) * 9.5).toFixed(2);
             cgpaResultEl.textContent = cgpa;
@@ -294,9 +300,12 @@
         function addSubject() {
             const subjectName = subjectNameInput.value.trim();
             const marks = parseFloat(marksInput.value);
+            
+            const isLab = isLabSubject(subjectName);
+            const totalMarks = isLab ? 50 : 100;
 
-            if (!subjectName || isNaN(marks) || marks < 0 || marks > 100) {
-                alert('Please enter a valid subject name and marks between 0 and 100.');
+            if (!subjectName || isNaN(marks) || marks < 0 || marks > totalMarks) {
+                alert(`Please enter a valid subject name and marks between 0 and ${totalMarks}.`);
                 return;
             }
             
@@ -309,11 +318,13 @@
             }
             
             const credits = subjectCreditsDB[semester][subjectKey];
-            const gradeInfo = getGradeInfo(marks);
+            const marksPercentage = (marks / totalMarks) * 100;
+            const gradeInfo = getGradeInfo(marksPercentage);
 
             subjects.push({
                 name: subjectName,
                 marks: marks,
+                totalMarks: totalMarks,
                 credits: credits,
                 gradeInfo: gradeInfo,
                 semester: semester
@@ -344,9 +355,24 @@
             marksInput.value = '';
         }
 
+        /**
+         * Updates the marks input field based on the selected subject.
+         */
+        function updateMarksInputContext() {
+            const subjectName = subjectNameInput.value;
+            if (isLabSubject(subjectName)) {
+                marksInput.max = 50;
+                marksInput.placeholder = "e.g., 45 (out of 50)";
+            } else {
+                marksInput.max = 100;
+                marksInput.placeholder = "e.g., 85 (out of 100)";
+            }
+        }
+
         // Event Listeners
         addSubjectBtn.addEventListener('click', addSubject);
         resetBtn.addEventListener('click', resetCalculator);
+        subjectNameInput.addEventListener('input', updateMarksInputContext);
         
         marksInput.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {

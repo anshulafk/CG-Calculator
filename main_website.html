@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGPA & CGPA Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        details > summary::after {
+            content: '+';
+            float: right;
+            font-size: 1.5em;
+            line-height: 1;
+            margin-top: -4px;
+            transition: transform 0.2s;
+        }
+        details[open] > summary::after {
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">SGPA & CGPA Calculator</h1>
+            <p class="text-gray-500 mt-2">For J.C. Bose University (YMCA) B.Tech ENC Students</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- Left Column: Input and Results -->
+            <div class="flex flex-col space-y-6">
+                
+                <!-- Input Form -->
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-4">Add Subject Details</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="subjectName" class="block text-sm font-medium text-gray-600 mb-1">Subject Name</label>
+                            <input type="text" id="subjectName" list="subject-list-options" placeholder="Start typing a subject name..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            <datalist id="subject-list-options"></datalist>
+                        </div>
+                        <div>
+                            <label for="marks" class="block text-sm font-medium text-gray-600 mb-1">Marks Obtained (out of 100)</label>
+                            <input type="number" id="marks" placeholder="e.g., 85" min="0" max="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                        </div>
+                        <button id="addSubjectBtn" class="w-full bg-indigo-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                            Add Subject
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Display -->
+                <div class="result-card text-white p-6 rounded-xl flex flex-col items-center justify-center text-center">
+                    <h2 class="text-xl font-semibold mb-2 text-indigo-200">Overall CGPA</h2>
+                    <p id="cgpaResult" class="text-5xl font-bold tracking-tight">0.00</p>
+                    <p id="percentageResult" class="mt-2 text-indigo-200">Equivalent Percentage: 0.00%</p>
+                </div>
+
+                 <!-- Action Buttons -->
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <button id="resetBtn" class="w-full bg-red-500 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-transform transform hover:scale-105">
+                        Reset Calculator
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Subjects List -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4">Semester Breakdown</h2>
+                <div id="semester-accordion" class="h-96 overflow-y-auto space-y-2 pr-2">
+                    <!-- Semester accordions will be generated here by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // In-memory database for B.Tech ENC subject credits, structured by semester.
+        const subjectCreditsDB = {
+            '1': {
+                'physics (waves and optics)': 4, 'mathematics-i': 4, 'engineering graphics & design': 2,
+                'programming for problem solving': 3, 'workshop- i': 2, 'physics(waves and optics) lab': 1.5,
+                'programming for problem solving lab': 2
+            },
+            '2': {
+                'mathematics-ii': 4, 'basic electrical engineering': 4, 'chemistry': 4, 'workshop- ii': 2,
+                'english': 2, 'basic electrical engineering lab': 1, 'chemistry lab': 1.5, 'english lab': 1
+            },
+            '3': {
+                'digital electronics & computer organization': 3, 'semiconductor devices': 3,
+                'object oriented programming using c++': 3, 'analog communication': 3,
+                'circuit analysis and synthesis': 3, 'mathematics-iii': 4, 'indian constitution': 0,
+                'essence of indian traditional knowledge': 0, 'object oriented programming using c++ lab': 1,
+                'digital electronics lab': 1, 'analog communication lab': 1, 'electronics project workshop-i': 3
+            },
+            '4': {
+                'digital communication': 3, 'analog electronics circuits': 3, 'microprocessors & its application': 3,
+                'data structure using python': 3, 'digital system design & applications': 3,
+                'theory of signal & system': 3, 'biology': 3, 'digital system design lab': 1,
+                'analog electronic circuit lab': 1, 'microprocessors & its application lab': 1,
+                'data structure using python lab': 1, 'electronics project workshop-ii': 3
+            },
+            '5': {
+                'embedded system design': 3, 'database management systems': 3, 'operating system': 3,
+                'integrated circuit design': 3, 'environmental science': 0, 'open elective-i': 3,
+                'database management systems lab': 1, 'integrated circuit design lab': 1, 'project workshop-iii': 3
+            },
+            '6': {
+                'mobile communication': 3, 'digital signal processing': 3, 'computer networks': 3,
+                'message of bhagwat gita': 0, 'program elective-i': 3, 'program elective-ii': 3,
+                'open elective -ii': 3, 'digital signal processing lab': 1, 'mobile communication lab': 1,
+                'computer networks lab': 1, 'project workshop-iv': 3
+            },
+            '7': {
+                'program elective-iii': 3, 'program elective-iv': 3, 'program elective-v': 3,
+                'effective technical communication': 3, 'open elective-iii': 3, 'open elective -iv': 3,
+                'major project': 1, 'project workshop-v': 2
+            },
+            '8': { 'industrial training': 10 }
+        };
+
+        let subjects = [];
+
+        // DOM element references
+        const subjectNameInput = document.getElementById('subjectName');
+        const marksInput = document.getElementById('marks');
+        const addSubjectBtn = document.getElementById('addSubjectBtn');
+        const accordionContainer = document.getElementById('semester-accordion');
+        const cgpaResultEl = document.getElementById('cgpaResult');
+        const percentageResultEl = document.getElementById('percentageResult');
+        const resetBtn = document.getElementById('resetBtn');
+        const datalist = document.getElementById('subject-list-options');
+
+        /**
+         * Populates the datalist for autocomplete suggestions from all semesters.
+         */
+        function populateDatalist() {
+            Object.values(subjectCreditsDB).forEach(semesterSubjects => {
+                for (const subjectName in semesterSubjects) {
+                    const option = document.createElement('option');
+                    option.value = subjectName.replace(/\b\w/g, l => l.toUpperCase());
+                    datalist.appendChild(option);
+                }
+            });
+        }
+        
+        /**
+         * Finds the semester for a given subject key (lowercase).
+         * @param {string} subjectKey - The lowercase name of the subject.
+         * @returns {string|null} The semester number as a string, or null if not found.
+         */
+        function findSemesterForSubject(subjectKey) {
+            for (const semester in subjectCreditsDB) {
+                if (subjectCreditsDB[semester].hasOwnProperty(subjectKey)) {
+                    return semester;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Converts marks into a grade and grade points.
+         */
+        function getGradeInfo(marks) {
+            if (marks >= 90) return { grade: 'O', points: 10 };
+            if (marks >= 80) return { grade: 'A+', points: 9 };
+            if (marks >= 70) return { grade: 'A', points: 8 };
+            if (marks >= 60) return { grade: 'B+', points: 7 };
+            if (marks >= 50) return { grade: 'B', points: 6 };
+            if (marks >= 45) return { grade: 'C', points: 5 };
+            if (marks >= 40) return { grade: 'P', points: 4 };
+            return { grade: 'F', points: 0 };
+        }
+
+        /**
+         * Renders the entire semester accordion display and calculates all GPAs.
+         */
+        function renderAndCalculateAll() {
+            accordionContainer.innerHTML = ''; 
+
+            let totalCreditPoints = 0;
+            let totalCredits = 0;
+
+            for (let i = 1; i <= 8; i++) {
+                const semester = i.toString();
+                const semesterSubjects = subjects.filter(s => s.semester === semester);
+
+                const details = document.createElement('details');
+                details.className = 'bg-white rounded-lg border border-gray-200 overflow-hidden';
+                if (semesterSubjects.length > 0) {
+                    details.open = true;
+                }
+
+                let semesterCreditPoints = 0;
+                let semesterCredits = 0;
+
+                semesterSubjects.forEach(sub => {
+                    if (sub.credits > 0) {
+                        const creditPoint = sub.gradeInfo.points * sub.credits;
+                        semesterCreditPoints += creditPoint;
+                        semesterCredits += sub.credits;
+                        totalCreditPoints += creditPoint;
+                        totalCredits += sub.credits;
+                    }
+                });
+
+                const sgpa = semesterCredits > 0 ? (semesterCreditPoints / semesterCredits).toFixed(2) : '0.00';
+
+                let contentHTML = `
+                    <summary class="p-4 font-semibold cursor-pointer flex justify-between items-center hover:bg-gray-50">
+                        <span>Semester ${semester}</span>
+                        <span class="text-indigo-600 font-bold">SGPA: ${sgpa}</span>
+                    </summary>
+                    <div class="p-4 border-t border-gray-200 bg-gray-50">
+                `;
+
+                if (semesterSubjects.length > 0) {
+                    contentHTML += `
+                        <table class="w-full text-sm text-left bg-white">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-2 py-2">Subject</th>
+                                    <th class="px-2 py-2 text-center">Marks</th>
+                                    <th class="px-2 py-2 text-center">Grade</th>
+                                    <th class="px-2 py-2 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    semesterSubjects.forEach(sub => {
+                        const globalIndex = subjects.indexOf(sub);
+                        contentHTML += `
+                            <tr class="border-b">
+                                <td class="px-2 py-2 font-medium">${sub.name} <span class="text-xs text-gray-500">(${sub.credits} cr)</span></td>
+                                <td class="px-2 py-2 text-center">${sub.marks}</td>
+                                <td class="px-2 py-2 text-center font-semibold">${sub.gradeInfo.grade}</td>
+                                <td class="px-2 py-2 text-center">
+                                    <button class="text-red-500 hover:text-red-700" onclick="removeSubject(${globalIndex})">
+                                        <svg xmlns="http://www.w.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    </button>
+                                </td>
+                            </tr>`;
+                    });
+                    contentHTML += `</tbody></table>`;
+                } else {
+                    contentHTML += `<p class="text-center text-gray-500 py-4">No subjects added for this semester.</p>`;
+                }
+
+                contentHTML += `</div>`;
+                details.innerHTML = contentHTML;
+                accordionContainer.appendChild(details);
+            }
+
+            // Update overall CGPA display
+            const cgpa = totalCredits > 0 ? (totalCreditPoints / totalCredits).toFixed(2) : '0.00';
+            const percentage = (parseFloat(cgpa) * 9.5).toFixed(2);
+            cgpaResultEl.textContent = cgpa;
+            percentageResultEl.textContent = `Equivalent Percentage: ${percentage}%`;
+        }
+        
+        /**
+         * Adds a new subject to the list.
+         */
+        function addSubject() {
+            const subjectName = subjectNameInput.value.trim();
+            const marks = parseFloat(marksInput.value);
+
+            if (!subjectName || isNaN(marks) || marks < 0 || marks > 100) {
+                alert('Please enter a valid subject name and marks between 0 and 100.');
+                return;
+            }
+            
+            const subjectKey = subjectName.toLowerCase();
+            const semester = findSemesterForSubject(subjectKey);
+
+            if (!semester) {
+                alert('Subject not found in the B.Tech ENC curriculum. Please check the name and try again.');
+                return;
+            }
+            
+            const credits = subjectCreditsDB[semester][subjectKey];
+            const gradeInfo = getGradeInfo(marks);
+
+            subjects.push({
+                name: subjectName,
+                marks: marks,
+                credits: credits,
+                gradeInfo: gradeInfo,
+                semester: semester
+            });
+            
+            renderAndCalculateAll();
+
+            subjectNameInput.value = '';
+            marksInput.value = '';
+            subjectNameInput.focus();
+        }
+
+        /**
+         * Removes a subject from the list by its global index.
+         */
+        function removeSubject(index) {
+            subjects.splice(index, 1);
+            renderAndCalculateAll();
+        }
+
+        /**
+         * Resets the calculator.
+         */
+        function resetCalculator() {
+            subjects = [];
+            renderAndCalculateAll();
+            subjectNameInput.value = '';
+            marksInput.value = '';
+        }
+
+        // Event Listeners
+        addSubjectBtn.addEventListener('click', addSubject);
+        resetBtn.addEventListener('click', resetCalculator);
+        
+        marksInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addSubject();
+            }
+        });
+        
+        // Initial setup on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            populateDatalist();
+            renderAndCalculateAll();
+        });
+
+    </script>
+</body>
+</html>

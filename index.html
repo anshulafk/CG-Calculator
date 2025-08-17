@@ -150,8 +150,6 @@
             '8': { 'industrial training': 10 }
         };
 
-        let subjects = [];
-
         // DOM element references
         const subjectNameInput = document.getElementById('subjectName');
         const marksInput = document.getElementById('marks');
@@ -162,17 +160,27 @@
         const resetBtn = document.getElementById('resetBtn');
         const datalist = document.getElementById('subject-list-options');
 
+        // --- LOCAL STORAGE IMPLEMENTATION ---
+        // 1. Load subjects from localStorage on startup. If nothing is saved, start with an empty array.
+        let subjects = JSON.parse(localStorage.getItem('savedSubjects')) || [];
+
+        /**
+         * Saves the current `subjects` array to the browser's localStorage.
+         */
+        function saveSubjects() {
+            localStorage.setItem('savedSubjects', JSON.stringify(subjects));
+        }
+        // --- END OF LOCAL STORAGE IMPLEMENTATION ---
+
         /**
          * Checks if a subject is a lab based on its name.
-         * @param {string} subjectName - The name of the subject.
-         * @returns {boolean} True if it's a lab subject, false otherwise.
          */
         function isLabSubject(subjectName) {
             return subjectName.toLowerCase().includes('lab');
         }
 
         /**
-         * Populates the datalist for autocomplete suggestions from all semesters.
+         * Populates the datalist for autocomplete suggestions.
          */
         function populateDatalist() {
             Object.values(subjectCreditsDB).forEach(semesterSubjects => {
@@ -211,7 +219,7 @@
         }
 
         /**
-         * Renders the entire semester accordion display and calculates all GPAs.
+         * Renders the semester breakdown and calculates all GPAs.
          */
         function renderAndCalculateAll() {
             accordionContainer.innerHTML = ''; 
@@ -331,6 +339,7 @@
             });
             
             renderAndCalculateAll();
+            saveSubjects(); // 2. Save after adding a subject
 
             subjectNameInput.value = '';
             marksInput.value = '';
@@ -343,6 +352,7 @@
         function removeSubject(index) {
             subjects.splice(index, 1);
             renderAndCalculateAll();
+            saveSubjects(); // 2. Save after removing a subject
         }
 
         /**
@@ -351,6 +361,7 @@
         function resetCalculator() {
             subjects = [];
             renderAndCalculateAll();
+            saveSubjects(); // 2. Save after resetting
             subjectNameInput.value = '';
             marksInput.value = '';
         }
@@ -384,7 +395,7 @@
         // Initial setup on page load
         document.addEventListener('DOMContentLoaded', () => {
             populateDatalist();
-            renderAndCalculateAll();
+            renderAndCalculateAll(); // This will now render the saved data
         });
 
     </script>
